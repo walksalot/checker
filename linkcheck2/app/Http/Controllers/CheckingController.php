@@ -26,6 +26,7 @@ class CheckingController extends Controller
 	* Get a web file (HTML, XHTML, XML, image, etc.) from a URL.  Return an
 	* array containing the HTTP server response header fields and content.
 	*/
+
 		function get_web_page( $url )
 		{
 			$options = array(
@@ -75,26 +76,27 @@ class CheckingController extends Controller
 			$output = get_web_page($url);
 			$out = $output['content'];
 			$regexp = "<a\s[^>]*href=(\"??)([^\" >]*?)\\1[^>]*>(.*)<\/a>";
-			if(preg_match_all("/$regexp/siU", $out, $matches, PREG_SET_ORDER)) {
-				foreach($matches as $match) {
+			if(preg_match_all("/$regexp/siU", $out, $matches, PREG_SET_ORDER)) {  // This means we've found an a href in the source.
+				foreach($matches as $match) {  // for each link on the page, is it one to us?
 					set_time_limit(1500);
 					$nofollow = 0;
 					$totalURLsPerSite = count($match);
+					$score = 0;
 					if(stristr($match[2], 'instantcheckmate.com') || stristr($match[2], 'truthfinder.com') || stristr($match[2], 'nextgenleads.com') || stristr($match[2], 'firstquotehealth.com') || stristr($match[2], 'insuranceclarity.com') || stristr($match[2], 'thecontrolgroup.com')) {
-						$tcgLinks++;
+						$tcgLinks++;  // it's to one of our sites, so we increment that for this URL.
+						$score = 1;
 						if(stristr($match[0], 'rel=\'nofollow\'') || stristr($match[0], 'rel="nofollow"') || stristr($match[0], 'rel=nofollow')) {
 							$nofollow = 1;
+							$score = .25;
 							$noFollowTotal++;
 						}
 						else {
 							$nofollow = 0;
 							$followedLinks++;
 						}
-
-						$linkInfo = [$url, parse_url($url, PHP_URL_HOST), $match[2], $match[0], $match[3], $nofollow, $tcgLinks];
+						$linkInfo = [$url, parse_url($url, PHP_URL_HOST), $match[2], $match[0], $match[3], $nofollow, $tcgLinks, $score];
 						$url_log = new UrlLog;
 						$url_log->url = $linkInfo[0];
-
 						$url_log->domain = parse_url($url, PHP_URL_HOST);
 						$url_log->link_code = $linkInfo[3];
 						$url_log->target_url = $linkInfo[2];
@@ -102,16 +104,14 @@ class CheckingController extends Controller
 						$url_log->nofollow = $nofollow;
 						$url_log->links_on_page = $tcgLinks;
 						$url_log->job_id = $job_id;
+						$url_log->score = $score;
 						$url_log->save();
 						array_push($checkLog, $linkInfo);
 					} 
-				// $match[2] = link address
-				// $match[3] = link text
-				// $match[0] = Full Link with Code
 				}
 			}
 			if(isset($linkInfo)) {
-				#URL had at least oen good link;
+				#URL had at least one good link;
 				if($followedLinks < 1) {
 					#There were links but all had no follow;
 				}
@@ -134,16 +134,11 @@ class CheckingController extends Controller
 		$uniqueDomains = count(array_unique($domainList));
 		$validLinks = Urllog::where('nofollow',0)->where('link_code', '!=', '')->groupby('domain')->distinct()->get()->count();
 
-		$resultMessage = "<br><h1>$sitesChecked unique URLs were entered.  Of those, there were $uniqueDomains unique Domains. Of the $sitesChecked unique URLs, $goodLinks had one or more links to us.  There were $noFollowTotal links with nofollow.  In the end there were $validLinks valid links that do not have rel=nofollow and are on unique domains.</h1><hr><br><br>";
-		#echo "<pre>";
-		#var_dump($checkLog);
-		#echo "</pre>";
+		$resultMessage = "$sitesChecked unique URLs were entered.  Of those, there were $uniqueDomains unique Domains. Of the $sitesChecked unique URLs, $goodLinks had one or more links to us.  There were $noFollowTotal links with nofollow.  In the end there were $validLinks valid links that do not have rel=nofollow and are on unique domains.";
 
-		# We want to look only at links withOUT nofollow and that DO have linkcode.
-		# Then, of those, we want to get the count of unique domains.
-		# SELECT COUNT(DISTINCT domain) from url_logs WHERE nofollow='0' AND link_code!=''
-
-
+usort($checkLog, function($a, $b) {
+    return $a['7'] <=> $b['7'];
+});
 
 
 		return view('results', compact('checkLog', 'resultMessage'));

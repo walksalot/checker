@@ -22,6 +22,7 @@ class CreateUrlLogsTable extends Migration
             $table->string('target_url');
             $table->string('anchor_text');
             $table->integer('nofollow');
+            $table->float('score');
 
             $table->integer('links_on_page');
             $table->timestamps();
