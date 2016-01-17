@@ -59,8 +59,9 @@ class CheckingController extends Controller
 		$noFollowTotal = 0;
 		$domainList = [];
 		$urlList = array_unique($urlList);
+
 		foreach($urlList as $url) {
-			
+		$tcgLinks = 0;	
 			set_time_limit(1500);
 
 			if(!stristr($url, 'http://') && !stristr($url, 'https://')) {
@@ -78,8 +79,9 @@ class CheckingController extends Controller
 				foreach($matches as $match) {
 					set_time_limit(1500);
 					$nofollow = 0;
-					$totalURLs = count($match);
+					$totalURLsPerSite = count($match);
 					if(stristr($match[2], 'instantcheckmate.com') || stristr($match[2], 'truthfinder.com') || stristr($match[2], 'nextgenleads.com') || stristr($match[2], 'firstquotehealth.com') || stristr($match[2], 'insuranceclarity.com') || stristr($match[2], 'thecontrolgroup.com')) {
+						$tcgLinks++;
 						if(stristr($match[0], 'rel=\'nofollow\'') || stristr($match[0], 'rel="nofollow"') || stristr($match[0], 'rel=nofollow')) {
 							$nofollow = 1;
 							$noFollowTotal++;
@@ -89,16 +91,16 @@ class CheckingController extends Controller
 							$followedLinks++;
 						}
 
-						$linkInfo = [$url, $match[0], $match[2], $match[3], $nofollow, $totalURLs, parse_url($url, PHP_URL_HOST)];
+						$linkInfo = [$url, parse_url($url, PHP_URL_HOST), $match[2], $match[0], $match[3], $nofollow, $tcgLinks];
 						$url_log = new UrlLog;
 						$url_log->url = $linkInfo[0];
 
 						$url_log->domain = parse_url($url, PHP_URL_HOST);
-						$url_log->link_code = $linkInfo[1];
+						$url_log->link_code = $linkInfo[3];
 						$url_log->target_url = $linkInfo[2];
-						$url_log->anchor_text = $linkInfo[3];
-						$url_log->nofollow = $linkInfo[4];
-						$url_log->links_on_page = $linkInfo[5];
+						$url_log->anchor_text = $linkInfo[1];
+						$url_log->nofollow = $nofollow;
+						$url_log->links_on_page = $tcgLinks;
 						$url_log->job_id = $job_id;
 						$url_log->save();
 						array_push($checkLog, $linkInfo);
@@ -132,7 +134,7 @@ class CheckingController extends Controller
 		$uniqueDomains = count(array_unique($domainList));
 		$validLinks = Urllog::where('nofollow',0)->where('link_code', '!=', '')->groupby('domain')->distinct()->get()->count();
 
-		#echo "$sitesChecked unique URLs were entered.  Of those, there were $uniqueDomains unique Domains. Of the $sitesChecked unique URLs, $goodLinks had one or more links to us.  There were $noFollowTotal links with nofollow.  In the end there were $validLinks valid links that do not have rel=nofollow and are on unique domains.<hr><br><br>";
+		$resultMessage = "<br><h1>$sitesChecked unique URLs were entered.  Of those, there were $uniqueDomains unique Domains. Of the $sitesChecked unique URLs, $goodLinks had one or more links to us.  There were $noFollowTotal links with nofollow.  In the end there were $validLinks valid links that do not have rel=nofollow and are on unique domains.</h1><hr><br><br>";
 		#echo "<pre>";
 		#var_dump($checkLog);
 		#echo "</pre>";
@@ -144,6 +146,6 @@ class CheckingController extends Controller
 
 
 
-		return view('results', compact('checkLog'));
+		return view('results', compact('checkLog', 'resultMessage'));
 	}
 }
