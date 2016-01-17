@@ -22,8 +22,20 @@
     <div class="container" style="margin:5px;">
 
       <div class="page-header">
-       <h1 style="font-size:18px; line-height:1.6em;";> <?=$resultMessage;?></h1>
-        <p class="lead">Results are sorted from lowest score to highest. Total score is <span id="scoreTotal"></span></p>
+
+
+      <div class="panel panel-info">
+  <div class="panel-heading">
+    <h3 class="panel-title">How this works:</h3>
+  </div>
+  <div class="panel-body">
+   <h4> <?=$resultMessage;?></h4><br><p class="lead">Results are sorted from lowest score to highest. Total score is <span id="scoreTotal"></span></p>
+  </div>
+</div>
+
+
+
+        
       </div>
       <h3>All data is presented below.</h3>
       <p>The table below should provide you with all the information necessary to understand why certain links count as they did.  Management established that rel=nofollow links will be worth 0.25 "points" as compared to 1 point for a "clean" link.</p>
